@@ -1,6 +1,32 @@
-turn = 0
+turn = 0; 
 action_log = []  # Global action log accessible to all characters
 characters = []
+import asyncio
+from gemini_webapi import GeminiClient
+
+# Replace "COOKIE VALUE HERE" with your actual cookie values.
+# Leave Secure_1PSIDTS empty if it's not available for your account.
+
+
+async def prompter(prompt):
+    # If browser-cookie3 is installed, simply use `client = GeminiClient()`
+    client = GeminiClient()
+    await client.init(timeout=30, auto_close=False, close_delay=300, auto_refresh=True)
+    response = await client.generate_content(prompt)
+    return response.text.strip()
+
+def log(text: str) -> None:
+    with open("log.txt", "a", encoding="utf-8") as f:
+        f.write(text + "\n") #
+
+
+
+
+
+
+
+
+
 class character:
     def __init__(self, name):
         self.alive = True
@@ -9,7 +35,7 @@ class character:
         self.health = 100 #100%
     class actions:
         def eat(self):
-            self.health += 10*
+            self.health += 10
             self.happiness += 5
             return f"{self.name} eats food and feels healthier and happier."
         def kill(self, target):
@@ -30,10 +56,10 @@ class character:
                 civ_stats = ""
 
                 civ_stats = f"""
-                Name: {self.civilization.name}
-                Leader: {self.civilization.leader}
-                Population: {self.civilization.population}
-                Happiness: {self.civilization.happiness}%
+                Name: {civilization.name}
+                Leader: {civilization.leader}
+                Population: {civilization.population}
+                Happiness: {civilization.happiness}%
                 Health: {civilization.health}%"""
                 
                 # Format action log
@@ -41,7 +67,7 @@ class character:
                     (f"{entry['target']}: {entry['message']}" if entry['action'] == 'message' else f"kills {entry['target']}") 
                     for entry in action_log]) if action_log else "No actions yet."
                 
-                return f"""You are a character in a simulation, simulating a civilization as modeled by Aristotle's famous book 'Politics' 
+                return f"""You are a character named {self.name} in a simulation, simulating a civilization as modeled by Aristotle's famous book 'Politics' 
                 This is turn: {turn}
                 Here are your current stats:
                 Name: {self.name}
@@ -54,7 +80,7 @@ class character:
                 3. If you kill the leader, you become the leader.
                 4. Others may kill you if you decide to murder for no reason.
                 5. The action log is public, and everyone can read it.
-
+                6. You can only execute one action per turn, but /message does not count towards this quota.
                 Action Log (Public to all characters):
                 {action_log_display}
 
@@ -70,7 +96,7 @@ class civilization:
     def __init__(self, name):
         self.name = name
         self.leader = None
-        self.population = 0
+        self.population = None
         self.happiness = None
         self.health = None
     def update_stats(self):
@@ -110,4 +136,14 @@ characters.append(character("Bradley"))
 characters.append(character("Joseph"))
 characters.append(character("Terence"))
 characters.append(character("Frances"))
-characters.append(character("Arron"))
+#found some website to generate names. very nice
+while True:
+    civilization.update_stats()
+    for char in characters:
+        print(char.actions.menu.show(char))
+        msg = asyncio.run(prompter(char.actions.menu.show(char)))
+        log(f"{char.name}:{msg}")
+
+        if "/eat" in msg:
+            
+    turn += 1
