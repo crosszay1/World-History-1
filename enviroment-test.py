@@ -145,5 +145,9 @@ while True:
         log(f"{char.name}:{msg}")
 
         if "/eat" in msg:
-            
+            character.actions.eat(char)
+            done = True
+        if "/message" in msg:
+                action_log.append({"turn": turn, "sender": self.name, "action": "Message", "Content": msg.split("/message")[1].strip()})
+
     turn += 1
