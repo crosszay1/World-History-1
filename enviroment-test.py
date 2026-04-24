@@ -43,10 +43,10 @@ class character:
             action_log.append({"turn": turn, "sender": self.name, "action": "kill", "target": target.name})
             return f"{self.name} kills {target.name} and feels more powerful."
 
-        def exercise(self, minutes):
-            self.health += minutes * 3
-            self.happiness += minutes * 4
-            return f"{self.name} exercises for {minutes} minutes and feels stronger and happier."
+        def exercise(self):
+            self.health += 5
+            self.happiness += 5
+            return f"{self.name} exercises and feels better"
         def message(self, target, message_text):
             action_log.append({"turn": turn, "sender": self.name, "action": "message", "target": target.name, "message": message_text})
             return f"{self.name} sends message to {target.name}: '{message_text}'"            
@@ -143,8 +143,8 @@ while True:
             pass
         else:
             print(char.actions.menu.show(char))
-            msg = asyncio.run(prompter(char.actions.menu.show(char)))
-            print(msg)
+            #msg = asyncio.run(prompter(char.actions.menu.show(char)))
+            msg = input("manual mode:")
             log(f"{char.name}:{msg}")
             normalized_msg = msg.strip()
             lower_msg = normalized_msg.lower()
@@ -160,7 +160,7 @@ while True:
                 target_name = normalized_msg.split(" ", 1)[1].strip()
                 target_char = next((c for c in characters if c.name.lower() == target_name.lower() and c.alive), None)
                 if target_char:
-                    char.actions.kill(target_char)
+                    char.actions.kill(char, target_char)
                 else:
                     print(f"Character '{target_name}' not found or already dead.")
             if lower_msg.startswith("/exercise ") or lower_msg.startswith("exercise "):
