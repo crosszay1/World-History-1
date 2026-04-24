@@ -3,17 +3,21 @@ action_log = []  # Global action log accessible to all characters
 characters = []
 import asyncio
 from gemini_webapi import GeminiClient
-
+client = GeminiClient()
+import sys
 # Replace "COOKIE VALUE HERE" with your actual cookie values.
 # Leave Secure_1PSIDTS empty if it's not available for your account.
 
 
 async def prompter(prompt):
+    try:
     # If browser-cookie3 is installed, simply use `client = GeminiClient()`
-    client = GeminiClient()
-    await client.init(timeout=30, auto_close=False, close_delay=300, auto_refresh=True)
-    response = await client.generate_content(prompt)
-    return response.text.strip()
+        await client.init(timeout=30, auto_close=False, close_delay=300, auto_refresh=True)
+        response = await client.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        print(f"Error in prompter: {e}")    
+        sys.exit(1)
 
 def log(text: str) -> None:
     with open("log.txt", "a", encoding="utf-8") as f:
@@ -36,7 +40,7 @@ class character:
     class actions:
         def eat(self):
             self.health += 10
-            self.happiness += 5
+            self.happiness = min(self.happiness + 5, 100) #cap happiness at 100%
             return f"{self.name} eats food and feels healthier and happier."
         def kill(self, target):
             self.happiness += 20
@@ -85,11 +89,11 @@ class character:
                 {action_log_display}
 
                 What would you like to do? 
-                1. Eat (restores 10 health and 5 happiness)
-                2. Message (send a message to another characters)
-                3. Kill (eliminate another character)
-                4. Exercise (improve health and happiness)
-
+                1. Eat (restores 10 health and 5 happiness) [/eat]
+                2. Message (send a message to another characters) [/message content]
+                3. Kill (eliminate another character) [/kill name]
+                4. Exercise (improve health and happiness) [/exercise]
+                5. Elect (Elect someone as leader) [/elect name]
                 Please explain your reasoning, then type /[command] for example /eat /kill [character name] or /message [content]
                 """
 class civilization:
@@ -140,14 +144,33 @@ characters.append(character("Frances"))
 while True:
     civilization.update_stats()
     for char in characters:
-        print(char.actions.menu.show(char))
-        msg = asyncio.run(prompter(char.actions.menu.show(char)))
-        log(f"{char.name}:{msg}")
+        print(f"Peggy is: {characters[1].alive}")
+        if char.alive == False:
+            pass
+        else:
+            print(char.actions.menu.show(char))
+            msg = asyncio.run(prompter(char.actions.menu.show(char)))
+            
+            log(f"{char.name}:{msg}")
 
-        if "/eat" in msg:
-            character.actions.eat(char)
-            done = True
-        if "/message" in msg:
-                action_log.append({"turn": turn, "sender": self.name, "action": "Message", "Content": msg.split("/message")[1].strip()})
+            normalized_msg = msg.strip()
+            lower_msg = normalized_msg.lower()
 
+            if lower_msg == "/eat" or lower_msg == "eat":
+                character.actions.eat(char)
+
+            if lower_msg.startswith("/message ") or lower_msg.startswith("message "):
+                content = normalized_msg.split(" ", 1)[1].strip()
+                action_log.append({"turn": turn, "sender": char.name, "action": "Message", "Content": content})
+
+            if lower_msg.startswith("/kill ") or lower_msg.startswith("kill "):
+                target_name = normalized_msg.split(" ", 1)[1].strip()
+                target_char = next((c for c in characters if c.name.lower() == target_name.lower() and c.alive), None)
+                if target_char:
+                    char.actions.kill(target_char)
+                else:
+                    print(f"Character '{target_name}' not found or already dead.")
+            if lower_msg.startswith("/exercise ") or lower_msg.startswith("exercise "):
+                char.excercise()
+        
     turn += 1
