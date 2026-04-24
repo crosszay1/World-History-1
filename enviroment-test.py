@@ -2,23 +2,17 @@ turn = 0;
 action_log = []  # Global action log accessible to all characters
 characters = []
 import asyncio
+from urllib import response
 from gemini_webapi import GeminiClient
-client = GeminiClient()
 import sys
 # Replace "COOKIE VALUE HERE" with your actual cookie values.
 # Leave Secure_1PSIDTS empty if it's not available for your account.
 
-
 async def prompter(prompt):
-    try:
-    # If browser-cookie3 is installed, simply use `client = GeminiClient()`
-        await client.init(timeout=30, auto_close=False, close_delay=300, auto_refresh=True)
-        response = await client.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        print(f"Error in prompter: {e}")    
-        sys.exit(1)
-
+    client = GeminiClient()
+    await client.init(timeout=30, auto_close=False, close_delay=300, auto_refresh=True)
+    response = await client.generate_content(prompt)
+    return response.text
 def log(text: str) -> None:
     with open("log.txt", "a", encoding="utf-8") as f:
         f.write(text + "\n") #
@@ -37,6 +31,7 @@ class character:
         self.name = name
         self.happiness = 100 #100%
         self.health = 100 #100%
+        self.votedFor = None
     class actions:
         def eat(self):
             self.health += 10
@@ -144,15 +139,13 @@ characters.append(character("Frances"))
 while True:
     civilization.update_stats()
     for char in characters:
-        print(f"Peggy is: {characters[1].alive}")
         if char.alive == False:
             pass
         else:
             print(char.actions.menu.show(char))
             msg = asyncio.run(prompter(char.actions.menu.show(char)))
-            
+            print(msg)
             log(f"{char.name}:{msg}")
-
             normalized_msg = msg.strip()
             lower_msg = normalized_msg.lower()
 
@@ -172,5 +165,31 @@ while True:
                     print(f"Character '{target_name}' not found or already dead.")
             if lower_msg.startswith("/exercise ") or lower_msg.startswith("exercise "):
                 char.excercise()
+            if lower_msg.startswith("/elect ") or lower_msg.startswith("elect "):
+                if char.votedFor is None:
+                    target_name = normalized_msg.split(" ", 1)[1].strip()
+                    target_char = next((c for c in characters if c.name.lower() == target_name.lower() and c.alive), None)
+                    if target_char:
+                        char.votedFor = target_char.name
+                        action_log.append({"turn": turn, "sender": char.name, "action": "Elect", "target": target_char.name})
+            alive_characters = [char for char in characters if char.alive]
+            alive_names = {char.name for char in alive_characters}
+
+            if civilization.leader not in alive_names:
+                civilization.leader = None
+
+            vote_count = {}
+            for voter in alive_characters:
+                if voter.votedFor in alive_names:
+                    vote_count[voter.votedFor] = vote_count.get(voter.votedFor, 0) + 1
+                elif voter.votedFor is not None:
+                    voter.votedFor = None
+
+            majority_threshold = len(alive_characters) / 2
+            for candidate, votes in vote_count.items():
+                if votes > majority_threshold:
+                    civilization.leader = candidate
+                    break
+
         
     turn += 1
